@@ -1002,7 +1002,7 @@
             var extract = sum.extract.length > 170
               ? sum.extract.slice(0,170).replace(/\s+\S*$/, "") + "…"
               : sum.extract;
-            textEl.innerHTML = "<b>" + displayName + "</b> — " + extract + ' <span class="fun-fact-source">(ויקיפדיה)</span>';
+            textEl.innerHTML = "<b>" + displayName + "</b> " + extract + ' <span class="fun-fact-source">(ויקיפדיה)</span>';
             panel.classList.add("show");
 
             if (sum.thumbnail && sum.thumbnail.source){
