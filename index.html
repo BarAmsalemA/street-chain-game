@@ -1103,7 +1103,10 @@
   });
 
   document.getElementById("btnShare").addEventListener("click", function(){
-    var msg = "פיצחתי שרשרת של " + state.streak + " רחובות ברצף במשחק זמיר הרחובות 🔗🗺️ בואו תנסו גם אתם!";
+    // derive the link from wherever the game is actually served — never goes stale if the domain moves
+    var gameUrl = window.location.origin + window.location.pathname;
+    var msg = "פיצחתי שרשרת של " + state.streak + " רחובות ברצף במשחק זמיר הרחובות 🔗🗺️\n" +
+              "כמה תל אביבים אתם? בואו תנסו לשבור אותי:\n" + gameUrl;
     window.open("https://wa.me/?text=" + encodeURIComponent(msg), "_blank");
   });
 
