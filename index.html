@@ -3,13 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>שרשרת הרחובות</title>
+<title>זמיר הרחובות</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@500;700;800;900&family=Heebo:wght@300;400;500;700;800&display=swap" rel="stylesheet">
 
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/5.12.0/maplibre-gl.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/5.12.0/maplibre-gl.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
   :root{
@@ -109,6 +110,51 @@
   @keyframes streakPop{ 0%{transform:scale(1);} 45%{transform:scale(1.25) rotate(-4deg);} 100%{transform:scale(1);} }
 
   .brand-right{ display:flex; align-items:center; gap:8px; }
+  .brand-right.hidden{ display:none; }
+
+  .google-btn{
+    display:flex; align-items:center; justify-content:center; gap:10px;
+    background:#FFF9F0;
+    color:#3C3C3C;
+    border:none;
+    border-radius:16px;
+    padding:14px;
+    font-family:"Rubik","Heebo",sans-serif;
+    font-weight:700;
+    font-size:15px;
+    cursor:pointer;
+    box-shadow:0 6px 0 rgba(0,0,0,.2), 0 10px 20px rgba(0,0,0,.25);
+    transition:transform .1s, box-shadow .1s;
+  }
+  .google-btn:active{ transform:translateY(4px); box-shadow:0 2px 0 rgba(0,0,0,.2); }
+  .mascot-wrap{ display:flex; justify-content:center; margin:6px 0 4px; }
+  .login-status{ margin-top:14px; text-align:center; color:var(--text-muted); font-size:13px; }
+  .login-hint{ margin-top:12px; text-align:center; color:var(--text-muted); font-size:12px; line-height:1.5; }
+
+  .login-features{ display:flex; flex-direction:column; gap:10px; margin-bottom:26px; }
+  .login-feature{
+    display:flex; align-items:center; gap:10px;
+    background:var(--bg-panel);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:12px 16px;
+    font-family:"Rubik","Heebo",sans-serif;
+    font-weight:600;
+    font-size:14px;
+  }
+  .login-feature span{ font-size:18px; }
+
+  .user-bar{
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom:10px;
+    font-size:12px;
+    color:var(--text-muted);
+  }
+  .signout-link{
+    background:none; border:none; color:var(--text-muted);
+    font-family:"Heebo",sans-serif; font-size:12px;
+    text-decoration:underline; cursor:pointer; padding:0;
+  }
   .trophy-btn{
     background:linear-gradient(135deg, rgba(255,214,109,.25), rgba(255,111,176,.15));
     border:1px solid rgba(255,214,109,.5);
@@ -451,7 +497,9 @@
   .lb-row.top1 .lb-rank{ font-size:20px; }
   .lb-row.top2 .lb-rank{ font-size:18px; }
   .lb-row.top3 .lb-rank{ font-size:18px; }
-  .lb-name{ flex:1; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .lb-name-wrap{ flex:1; overflow:hidden; }
+  .lb-name{ font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .lb-date{ font-size:11px; color:var(--text-muted); margin-top:2px; }
   .lb-score{
     font-family:"Rubik","Heebo",sans-serif;
     font-weight:800;
@@ -469,15 +517,82 @@
 <div id="app">
 
   <div class="brand" id="brandBar">
-    <div class="brand-title">שרשרת הרחובות</div>
-    <div class="brand-right">
+    <div class="brand-title">זמיר הרחובות</div>
+    <div class="brand-right hidden" id="brandRight">
       <div class="streak-pill hidden" id="streakPill">🔥 <span id="streakVal">0</span></div>
       <button class="trophy-btn" id="trophyBtn" title="טבלת אלופי השרשורים" aria-label="טבלת אלופי השרשורים">🏆</button>
     </div>
   </div>
 
+  <!-- Screen 0: login gate -->
+  <div class="screen active" id="screen-login">
+    <div class="mascot-wrap">
+      <svg width="150" height="150" viewBox="0 0 200 200" aria-hidden="true">
+        <ellipse cx="98" cy="184" rx="58" ry="8" fill="#000" opacity=".25"/>
+
+        <g transform="rotate(-14 145 120)">
+          <rect x="120" y="88" width="50" height="76" rx="9" fill="#FFF9F0" stroke="#E8B34D" stroke-width="2"/>
+          <line x1="120" y1="126" x2="170" y2="126" stroke="#E8B34D" stroke-width="2"/>
+          <circle cx="138" cy="104" r="4" fill="#170C36"/>
+          <circle cx="152" cy="104" r="4" fill="#170C36"/>
+          <circle cx="138" cy="144" r="4" fill="#170C36"/>
+          <circle cx="152" cy="144" r="4" fill="#170C36"/>
+          <circle cx="145" cy="154" r="4" fill="#170C36"/>
+        </g>
+
+        <path d="M46 118 Q30 96 52 84 Q60 100 58 118 Z" fill="#4DE8D0"/>
+
+        <ellipse cx="86" cy="128" rx="44" ry="40" fill="#FFB23D"/>
+        <ellipse cx="86" cy="140" rx="30" ry="22" fill="#FFE66D"/>
+
+        <path d="M60 66 Q66 46 78 58 Q70 62 68 74 Z" fill="#FF6FB0"/>
+
+        <circle cx="66" cy="92" r="30" fill="#FFB23D"/>
+
+        <path d="M40 88 Q30 84 34 96 Q42 98 46 92 Z" fill="#FF7A3D"/>
+
+        <circle cx="76" cy="86" r="15" fill="#FFF9F0"/>
+        <circle cx="79" cy="87" r="7" fill="#170C36"/>
+        <circle cx="81" cy="84" r="2.4" fill="#FFF9F0"/>
+        <ellipse cx="58" cy="100" rx="7" ry="4" fill="#FF6FB0" opacity=".6"/>
+
+        <path d="M78 108 L86 118 L70 118 Z" fill="#FF3D77"/>
+        <rect x="82" y="115" width="8" height="8" fill="#170C36" rx="1"/>
+        <path d="M94 108 L86 118 L102 118 Z" fill="#FF3D77"/>
+
+        <ellipse cx="70" cy="166" rx="6" ry="10" fill="#FF7A3D"/>
+        <ellipse cx="100" cy="168" rx="6" ry="10" fill="#FF7A3D"/>
+      </svg>
+    </div>
+
+    <div class="hero-title">כמה תל אביבים אתם באמת?</div>
+    <div class="hero-sub">מתחילים מרחוב אחד, מנחשים מי השכן שלו, ובונים שרשרת. כל תשובה נכונה — עוד רחוב לשרשרת. טעות אחת שוברת הכל. עד איפה תגיעו?</div>
+
+    <div class="login-features">
+      <div class="login-feature"><span>🗺️</span> מפה אמיתית של תל אביב</div>
+      <div class="login-feature"><span>🔥</span> בנו שרשרת רחובות</div>
+      <div class="login-feature"><span>🏆</span> התחרו על טבלת האלופים</div>
+    </div>
+
+    <button class="google-btn" id="btnGoogleLogin">
+      <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
+        <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.6 6.5 29.6 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.7-.4-3.5z"/>
+        <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 15.9 18.9 13 24 13c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.6 6.5 29.6 4 24 4 16.3 4 9.6 8.3 6.3 14.7z"/>
+        <path fill="#4CAF50" d="M24 44c5.5 0 10.5-2.1 14.3-5.6l-6.6-5.6C29.6 34.6 26.9 35.6 24 35.6c-5.3 0-9.7-3.3-11.3-8l-6.6 5.1C9.5 39.6 16.2 44 24 44z"/>
+        <path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.3 4.2-4.2 5.6l6.6 5.6C41.5 36 44 30.5 44 24c0-1.3-.1-2.7-.4-3.5z"/>
+      </svg>
+      התחברו עם Google
+    </button>
+    <div class="login-hint">מתחברים בשנייה, בלי סיסמאות. חיבור עם Google שומר לכם את השיאים לתמיד.</div>
+    <div class="login-status" id="loginStatus"></div>
+  </div>
+
   <!-- Screen 1: resolution -->
-  <div class="screen active" id="screen-resolution">
+  <div class="screen" id="screen-resolution">
+    <div class="user-bar">
+      <span id="userNameLabel"></span>
+      <button class="signout-link" id="btnSignOut">התנתקות</button>
+    </div>
     <div class="hero-title">כמה רחובות תחברו ברצף?</div>
     <div class="hero-sub">התחילו מרחוב אחד. בכל שלב בחרו את השכן הנכון שלו. טעות אחת — והשרשרת נשברת.</div>
 
@@ -533,11 +648,7 @@
       <div class="result-title" id="resultTitle">כאן זה נגמר</div>
       <div class="result-score">פיצחתם <b id="resultStreak">0</b> רחובות ברצף</div>
 
-      <div class="save-score" id="saveScoreBlock">
-        <input type="text" class="search-input" id="playerNameInput" placeholder="איך קוראים לך?" maxlength="24" autocomplete="off">
-        <button class="btn btn-primary" id="btnSaveScore">שמרו בטבלת האלופים 🏆</button>
-        <div class="save-status" id="saveStatus"></div>
-      </div>
+      <div class="save-status" id="saveStatus"></div>
 
       <div class="result-actions">
         <button class="btn btn-secondary" id="btnPlayAgain">שחקו שוב</button>
@@ -565,6 +676,57 @@
   // The anon key is meant to be public (it's gated by Row Level Security policies), safe to ship in client code.
   var SUPABASE_URL = "https://vbgllfzmljzfvzkbxaeb.supabase.co";
   var SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZiZ2xsZnptbGp6ZnZ6a2J4YWViIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ5ODMxNTAsImV4cCI6MjEwMDU1OTE1MH0.90z22vMnVmACn5Wtsqz3e8-a89witpSH8KUHIExTZ10";
+
+  var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  var currentUser = null;
+
+  function displayNameOf(user){
+    var meta = user.user_metadata || {};
+    return meta.full_name || meta.name || user.email || "שחקן";
+  }
+
+  function onSignedIn(user){
+    currentUser = user;
+    document.getElementById("brandRight").classList.remove("hidden");
+    document.getElementById("userNameLabel").textContent = "מחוברים כ" + displayNameOf(user);
+    showScreen("screen-resolution");
+  }
+
+  function onSignedOut(){
+    currentUser = null;
+    document.getElementById("brandRight").classList.add("hidden");
+    resetGame();
+    showScreen("screen-login");
+  }
+
+  sb.auth.onAuthStateChange(function(_event, session){
+    if (session && session.user){
+      if (!currentUser) onSignedIn(session.user);
+    } else if (currentUser){
+      onSignedOut();
+    }
+  });
+
+  sb.auth.getSession().then(function(res){
+    var session = res.data && res.data.session;
+    if (session && session.user){
+      onSignedIn(session.user);
+    } else {
+      document.getElementById("loginStatus").textContent = "";
+    }
+  });
+
+  document.getElementById("btnGoogleLogin").addEventListener("click", function(){
+    document.getElementById("loginStatus").textContent = "מעביר אתכם ל-Google...";
+    sb.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: window.location.href.split("#")[0].split("?")[0] }
+    });
+  });
+
+  document.getElementById("btnSignOut").addEventListener("click", function(){
+    sb.auth.signOut();
+  });
 
   // ---- Tel Aviv-Yafo street dataset — OpenStreetMap data via Overpass, precomputed: shared-node adjacency, city-polygon clipped ----
   // keys are the street's real Hebrew name; neighbors are real topological neighbors (share an OSM node)
@@ -775,7 +937,26 @@
     document.getElementById("resultEmoji").textContent = victory ? "🏆" : "🔗";
     document.getElementById("resultTitle").textContent = victory ? "סיימתם את השרשרת!" : pickFailMessage(state.streak);
     document.getElementById("resultStreak").textContent = state.streak;
-    prepSaveScoreBlock();
+
+    var status = document.getElementById("saveStatus");
+    status.textContent = "";
+    status.className = "save-status";
+    if (state.streak > 0 && currentUser){
+      sb.from("game_results").insert({
+        user_id: currentUser.id,
+        display_name: displayNameOf(currentUser),
+        streak: state.streak
+      }).then(function(res){
+        if (res.error){
+          status.textContent = "לא הצלחנו לשמור את התוצאה";
+          status.className = "save-status err";
+        } else {
+          status.textContent = "✓ התוצאה נשמרה";
+          status.className = "save-status ok";
+        }
+      });
+    }
+
     showScreen("screen-result");
   }
 
@@ -913,7 +1094,7 @@
   });
 
   document.getElementById("btnShare").addEventListener("click", function(){
-    var msg = "פיצחתי שרשרת של " + state.streak + " רחובות ברצף במשחק שרשרת הרחובות 🔗🗺️ בואו תנסו גם אתם!";
+    var msg = "פיצחתי שרשרת של " + state.streak + " רחובות ברצף במשחק זמיר הרחובות 🔗🗺️ בואו תנסו גם אתם!";
     window.open("https://wa.me/?text=" + encodeURIComponent(msg), "_blank");
   });
 
@@ -1030,103 +1211,45 @@
     } catch(e){}
   }
 
-  // ---- leaderboard (Supabase: public anon key, writes gated behind a DB function — see setup notes) ----
-  var PLAYER_NAME_KEY = "scg_player_name";
-
-  function getSavedPlayerName(){
-    try{ return localStorage.getItem(PLAYER_NAME_KEY) || ""; }catch(e){ return ""; }
-  }
-  function savePlayerName(name){
-    try{ localStorage.setItem(PLAYER_NAME_KEY, name); }catch(e){}
-  }
-
-  function prepSaveScoreBlock(){
-    var block = document.getElementById("saveScoreBlock");
-    var status = document.getElementById("saveStatus");
-    status.textContent = "";
-    status.className = "save-status";
-    if (state.streak <= 0 || !SUPABASE_URL){
-      block.style.display = "none";
-      return;
-    }
-    block.style.display = "flex";
-    document.getElementById("playerNameInput").value = getSavedPlayerName();
-  }
-
-  function submitScore(name, streak){
-    return fetch(SUPABASE_URL + "/rest/v1/rpc/submit_streak", {
-      method:"POST",
-      headers:{
-        "Content-Type":"application/json",
-        "apikey":SUPABASE_ANON_KEY,
-        "Authorization":"Bearer " + SUPABASE_ANON_KEY
-      },
-      body:JSON.stringify({ p_name:name, p_streak:streak })
-    }).then(function(r){
-      if (!r.ok) throw new Error("save failed");
-      return true;
-    });
-  }
-
-  document.getElementById("btnSaveScore").addEventListener("click", function(){
-    var input = document.getElementById("playerNameInput");
-    var status = document.getElementById("saveStatus");
-    var name = input.value.trim();
-    if (!name){
-      status.textContent = "רשמו שם קודם 🙂";
-      status.className = "save-status err";
-      return;
-    }
-    status.textContent = "שומר...";
-    status.className = "save-status";
-    submitScore(name, state.streak)
-      .then(function(){
-        savePlayerName(name);
-        status.textContent = "נשמר בטבלת האלופים! 🎉";
-        status.className = "save-status ok";
-      })
-      .catch(function(){
-        status.textContent = "לא הצלחנו לשמור — נסו שוב בעוד רגע";
-        status.className = "save-status err";
-      });
+  // ---- leaderboard (reads the `leaderboard` view — best streak per authenticated user) ----
+  var IL_TIME_FMT = new Intl.DateTimeFormat("he-IL", {
+    timeZone:"Asia/Jerusalem", day:"2-digit", month:"2-digit", year:"numeric",
+    hour:"2-digit", minute:"2-digit"
   });
 
   function loadLeaderboard(){
     var list = document.getElementById("lbList");
     var status = document.getElementById("lbStatus");
     list.innerHTML = "";
-
-    if (!SUPABASE_URL){
-      status.textContent = "טבלת האלופים תופעל בקרוב 🚧";
-      return;
-    }
-
     status.textContent = "טוען...";
-    fetch(SUPABASE_URL + "/rest/v1/leaderboard?select=name,best_streak&order=best_streak.desc&limit=30", {
-      headers:{ "apikey":SUPABASE_ANON_KEY, "Authorization":"Bearer " + SUPABASE_ANON_KEY }
-    })
-      .then(function(r){ return r.ok ? r.json() : Promise.reject(); })
-      .then(function(rows){
+
+    sb.from("leaderboard")
+      .select("user_id,display_name,best_streak,played_at")
+      .order("best_streak", { ascending:false })
+      .limit(30)
+      .then(function(res){
+        if (res.error){
+          status.textContent = "לא הצלחנו לטעון את הטבלה כרגע";
+          return;
+        }
+        var rows = res.data;
         status.textContent = "";
         if (!rows.length){
           status.textContent = "עוד אין אלופים — היו הראשונים! 🥇";
           return;
         }
-        var myName = getSavedPlayerName();
         rows.forEach(function(row, i){
           var el = document.createElement("div");
-          el.className = "lb-row" + (i===0?" top1":i===1?" top2":i===2?" top3":"") + (row.name===myName?" me":"");
+          el.className = "lb-row" + (i===0?" top1":i===1?" top2":i===2?" top3":"") + (currentUser && row.user_id===currentUser.id?" me":"");
           var medal = i===0?"🥇":i===1?"🥈":i===2?"🥉":(i+1);
           el.innerHTML =
             '<div class="lb-rank">'+medal+'</div>' +
-            '<div class="lb-name"></div>' +
+            '<div class="lb-name-wrap"><div class="lb-name"></div><div class="lb-date"></div></div>' +
             '<div class="lb-score">'+row.best_streak+'</div>';
-          el.querySelector(".lb-name").textContent = row.name;
+          el.querySelector(".lb-name").textContent = row.display_name;
+          el.querySelector(".lb-date").textContent = IL_TIME_FMT.format(new Date(row.played_at));
           list.appendChild(el);
         });
-      })
-      .catch(function(){
-        status.textContent = "לא הצלחנו לטעון את הטבלה כרגע";
       });
   }
 
