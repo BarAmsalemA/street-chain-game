@@ -121,6 +121,26 @@
   .brand-right{ display:flex; align-items:center; gap:8px; }
   .brand-right.hidden{ display:none; }
 
+  .hearts-pill{
+    display:flex; align-items:center; gap:3px;
+    background:linear-gradient(135deg, rgba(255,61,119,.25), rgba(255,111,176,.14));
+    border:1px solid rgba(255,111,176,.5);
+    border-radius:999px;
+    padding:6px 11px;
+    font-size:13px;
+    line-height:1;
+  }
+  .hearts-pill.hidden{ display:none; }
+  .heart{ transition:opacity .25s, filter .25s, transform .25s; }
+  .heart.lost{ opacity:.28; filter:grayscale(1); transform:scale(.85); }
+  .hearts-pill.hit{ animation:heartHit .5s ease; }
+  @keyframes heartHit{
+    0%,100%{ transform:translateX(0); }
+    20%{ transform:translateX(-5px) rotate(-3deg); }
+    45%{ transform:translateX(5px) rotate(3deg); }
+    70%{ transform:translateX(-3px); }
+  }
+
   .google-btn{
     display:flex; align-items:center; justify-content:center; gap:10px;
     background:#FFF9F0;
@@ -475,6 +495,7 @@
     .opt-btn.correct{ animation:none; }
     .fun-fact{ animation:none; }
     .streak-pill.pop{ animation:none; }
+    .hearts-pill.hit{ animation:none; }
   }
 
   .save-score{ width:100%; margin:18px 0; display:flex; flex-direction:column; gap:10px; }
@@ -558,6 +579,7 @@
   <div class="brand" id="brandBar">
     <div class="brand-title">זמיר הרחובות</div>
     <div class="brand-right hidden" id="brandRight">
+      <div class="hearts-pill hidden" id="heartsPill"></div>
       <div class="streak-pill hidden" id="streakPill">🔥 <span id="streakVal">0</span></div>
       <button class="trophy-btn" id="trophyBtn" title="טבלת אלופי השרשורים" aria-label="טבלת אלופי השרשורים">🏆</button>
     </div>
@@ -633,7 +655,7 @@
       <button class="signout-link" id="btnSignOut">התנתקות</button>
     </div>
     <div class="hero-title">באיזו עיר משחקים?</div>
-    <div class="hero-sub">התחילו מרחוב אחד. בכל שלב בחרו את השכן הנכון שלו. טעות אחת — והשרשרת נשברת.</div>
+    <div class="hero-sub">התחילו מרחוב אחד. בכל שלב בחרו את השכן הנכון שלו. יש לכם ❤️❤️❤️ שלושה לבבות — שלוש טעויות והשרשרת נשברת.</div>
 
     <div class="city-cards" id="cityCards"></div>
 
@@ -781,7 +803,8 @@
   var praiseLines = ["ראש העירייה היה גאה בכם 😌","הרחוב הזה בטח היה מתרגש","תושבי השכונה מרימים לכם כובע","ניכר שאתם לא תיירים"];
 
   // ---- state ----
-  var state = { cityId:null, currentId:null, previousId:null, streak:0, correctName:null, map:null, marker:null, locked:false };
+  var MAX_HEARTS = 3;
+  var state = { cityId:null, currentId:null, previousId:null, streak:0, hearts:MAX_HEARTS, correctName:null, map:null, marker:null, locked:false };
 
   var CITY_EMOJI = { tlv:"🏙️", yavne:"🌿" };
 
@@ -794,6 +817,7 @@
     document.querySelectorAll(".screen").forEach(function(s){ s.classList.remove("active"); });
     document.getElementById(id).classList.add("active");
     document.getElementById("streakPill").classList.toggle("hidden", id!=="screen-game");
+    document.getElementById("heartsPill").classList.toggle("hidden", id!=="screen-game");
   }
 
   function shuffle(arr){
@@ -907,7 +931,10 @@
     state.currentId = id;
     state.previousId = null;
     state.streak = 0;
+    state.hearts = MAX_HEARTS;
+    state.lastAnswerCorrect = null;
     updateStreakDisplay();
+    updateHeartsDisplay();
     showScreen("screen-game");
     initMapIfNeeded();
     renderTurn();
@@ -915,6 +942,17 @@
 
   function updateStreakDisplay(){
     document.getElementById("streakVal").textContent = state.streak;
+  }
+
+  function updateHeartsDisplay(){
+    var pill = document.getElementById("heartsPill");
+    pill.innerHTML = "";
+    for (var i=0;i<MAX_HEARTS;i++){
+      var h = document.createElement("span");
+      h.className = "heart" + (i < state.hearts ? "" : " lost");
+      h.textContent = "❤️";
+      pill.appendChild(h);
+    }
   }
 
   // planar squared-distance — good enough for ranking "nearby" streets over a city-sized area
@@ -959,7 +997,9 @@
 
   function renderTurn(){
     var q = getQuestionData(state.currentId, state.previousId);
-    if (!q){ endGame(true); return; }
+    // Running out of road only counts as completing the chain if the player actually
+    // walked here correctly — arriving at a dead end off a wrong answer is not a win.
+    if (!q){ endGame(state.lastAnswerCorrect === true); return; }
 
     state.correctName = q.correctName;
     state.pendingCorrectId = q.correctId;
@@ -991,6 +1031,7 @@
 
     if (selectedName === state.correctName){
       btnEl.classList.add("correct");
+      state.lastAnswerCorrect = true;
       state.streak++;
       updateStreakDisplay();
       var pill = document.getElementById("streakPill");
@@ -1009,15 +1050,37 @@
       }, 1450);
     } else {
       btnEl.classList.add("wrong");
+      state.lastAnswerCorrect = false;
       buttons.forEach(function(b){
         if (b.textContent === state.correctName) b.classList.add("correct");
       });
-      setTimeout(function(){ endGame(false); }, 900);
+
+      state.hearts--;
+      updateHeartsDisplay();
+      var hp = document.getElementById("heartsPill");
+      hp.classList.remove("hit");
+      void hp.offsetWidth;
+      hp.classList.add("hit");
+
+      if (state.hearts <= 0){
+        setTimeout(function(){ endGame(false); }, 1100);
+        return;
+      }
+
+      // still alive: walk on to the street that was actually correct, so the chain
+      // survives and the miss becomes a moment of learning rather than a dead end
+      showFunFact(state.pendingCorrectId);
+      setTimeout(function(){
+        hideFunFact();
+        state.previousId = state.currentId;
+        state.currentId = state.pendingCorrectId;
+        renderTurn();
+      }, 2100);
     }
   }
 
   function endGame(victory){
-    document.getElementById("resultEmoji").textContent = victory ? "🏆" : "🔗";
+    document.getElementById("resultEmoji").textContent = victory ? "🏆" : "💔";
     document.getElementById("resultTitle").textContent = victory ? "סיימתם את השרשרת!" : pickFailMessage(state.streak);
     document.getElementById("resultStreak").textContent = state.streak;
 
